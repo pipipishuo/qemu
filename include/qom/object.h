@@ -104,7 +104,7 @@ struct ObjectProperty
  * typedef ObjectUnparent:
  * @obj: the object that is being removed from the composition tree
  *
- * Called when an object is being removed from the QOM composition tree.
+ * Called when an object is being removed from the QOM composition tree.    //QOM怎么翻译？ qemu object manager?
  * The function should remove any backlinks from children objects to @obj.
  */
 typedef void (ObjectUnparent)(Object *obj);

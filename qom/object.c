@@ -97,7 +97,7 @@ static TypeImpl *type_table_lookup(const char *name)
     return g_hash_table_lookup(type_table, name);
 }
 
-static TypeImpl *type_new(const TypeInfo *info)
+static TypeImpl *type_new(const TypeInfo *info)     //简单的复制初始化
 {
     TypeImpl *ti = g_malloc0(sizeof(*ti));
     int i;
@@ -299,7 +299,7 @@ static bool type_is_ancestor(TypeImpl *type, TypeImpl *target_type)
 
 static void type_initialize(TypeImpl *ti);
 
-static void type_initialize_interface(TypeImpl *ti, TypeImpl *interface_type,
+static void type_initialize_interface(TypeImpl *ti, TypeImpl *interface_type,               //这个值得研究
                                       TypeImpl *parent_type)
 {
     InterfaceClass *new_iface;
@@ -307,8 +307,8 @@ static void type_initialize_interface(TypeImpl *ti, TypeImpl *interface_type,
     TypeImpl *iface_impl;
 
     info.parent = parent_type->name;
-    info.name = g_strdup_printf("%s::%s", ti->name, interface_type->name);
-    info.abstract = true;
+    info.name = g_strdup_printf("%s::%s", ti->name, interface_type->name);          //还有格式说明  可以  某一类的某一接口？interface翻译过来就是接口
+    info.abstract = true;                                                                   //抽象？
 
     iface_impl = type_new(&info);
     iface_impl->parent_type = parent_type;
@@ -335,7 +335,7 @@ static void object_property_free(gpointer data)
     g_free(prop);
 }
 
-static void type_initialize(TypeImpl *ti)
+static void type_initialize(TypeImpl *ti)               //初始化  值得研究一下
 {
     TypeImpl *parent;
 
@@ -370,17 +370,17 @@ static void type_initialize(TypeImpl *ti)
 
         g_assert(parent->class_size <= ti->class_size);
         g_assert(parent->instance_size <= ti->instance_size);
-        memcpy(ti->class, parent->class, parent->class_size);
+        memcpy(ti->class, parent->class, parent->class_size);           //先继承父类  目前看type是树形  class呢？
         ti->class->interfaces = NULL;
 
-        for (e = parent->class->interfaces; e; e = e->next) {
-            InterfaceClass *iface = e->data;
+        for (e = parent->class->interfaces; e; e = e->next) {                           //把父类的interface_type单独复制一个给子类  也就是互不干扰
+            InterfaceClass *iface = e->data;//这两行也就能说通为什么type_initialize_interface里面能放心把class转InterfaceClass
             ObjectClass *klass = OBJECT_CLASS(iface);
 
             type_initialize_interface(ti, iface->interface_type, klass->type);
         }
 
-        for (i = 0; i < ti->num_interfaces; i++) {
+        for (i = 0; i < ti->num_interfaces; i++) {                                  //自己单独的 接口       
             TypeImpl *t = type_get_by_name_noload(ti->interfaces[i].typename);
             if (!t) {
                 error_report("missing interface '%s' for object '%s'",
@@ -390,12 +390,12 @@ static void type_initialize(TypeImpl *ti)
             for (e = ti->class->interfaces; e; e = e->next) {
                 TypeImpl *target_type = OBJECT_CLASS(e->data)->type;
 
-                if (type_is_ancestor(target_type, t)) {
+                if (type_is_ancestor(target_type, t)) {//去重
                     break;
                 }
             }
 
-            if (e) {
+            if (e) {            //去重
                 continue;
             }
 
@@ -406,7 +406,7 @@ static void type_initialize(TypeImpl *ti)
     ti->class->properties = g_hash_table_new_full(g_str_hash, g_str_equal, NULL,
                                                   object_property_free);
 
-    ti->class->type = ti;
+    ti->class->type = ti;           //感觉二者不是一个维度的
 
     while (parent) {
         if (parent->class_base_init) {
@@ -423,7 +423,7 @@ static void type_initialize(TypeImpl *ti)
 static void object_init_with_type(Object *obj, TypeImpl *ti)
 {
     if (type_has_parent(ti)) {
-        object_init_with_type(obj, type_get_parent(ti));
+        object_init_with_type(obj, type_get_parent(ti));        //递归  各层初始化各层的  感觉接近了c++ 很合理
     }
 
     if (ti->instance_init) {
@@ -1484,7 +1484,7 @@ void object_class_property_iter_init(ObjectPropertyIterator *iter,
     iter->nextclass = object_class_get_parent(klass);
 }
 
-ObjectProperty *object_class_property_find(ObjectClass *klass, const char *name)
+ObjectProperty *object_class_property_find(ObjectClass *klass, const char *name)        //已经递归查找
 {
     ObjectClass *parent_klass;
 
@@ -1497,7 +1497,7 @@ ObjectProperty *object_class_property_find(ObjectClass *klass, const char *name)
         }
     }
 
-    return g_hash_table_lookup(klass->properties, name);
+    return g_hash_table_lookup(klass->properties, name);                //属性莫非都存这里？
 }
 
 ObjectProperty *object_class_property_find_err(ObjectClass *klass,
